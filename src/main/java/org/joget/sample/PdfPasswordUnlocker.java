@@ -6,11 +6,11 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.joget.apps.app.model.AppDefinition;
 import org.joget.apps.app.service.AppService;
 import org.joget.apps.app.service.AppUtil;
+import org.joget.apps.app.service.AppPluginUtil;
 import org.joget.apps.form.model.*;
 import org.joget.apps.form.service.FileUtil;
 import org.joget.apps.form.service.FormUtil;
 import org.joget.commons.util.LogUtil;
-import org.joget.commons.util.SecurityUtil;
 import org.joget.plugin.base.DefaultApplicationPlugin;
 import org.joget.workflow.model.WorkflowAssignment;
 import org.springframework.context.ApplicationContext;
@@ -28,7 +28,7 @@ public class PdfPasswordUnlocker extends DefaultApplicationPlugin {
 
     @Override
     public String getName() {
-        return "PDF Password Unlocker";
+        return AppPluginUtil.getMessage("org.joget.sample.PdfPasswordUnlocker.pluginLabel", getClassName(), MESSAGE_PATH);
     }
 
     @Override
@@ -38,7 +38,7 @@ public class PdfPasswordUnlocker extends DefaultApplicationPlugin {
 
     @Override
     public String getDescription() {
-        return "A tool to remove password protection from PDF files";
+        return AppPluginUtil.getMessage("org.joget.sample.PdfPasswordUnlocker.pluginDesc", getClassName(), MESSAGE_PATH);
     }
 
     @Override
@@ -53,7 +53,7 @@ public class PdfPasswordUnlocker extends DefaultApplicationPlugin {
 
     @Override
     public String getLabel() {
-        return "PDF Password Unlocker";
+        return AppPluginUtil.getMessage("org.joget.sample.PdfPasswordUnlocker.pluginLabel", getClassName(), MESSAGE_PATH);
     }
 
     @SuppressWarnings("rawtypes")
@@ -65,10 +65,9 @@ public class PdfPasswordUnlocker extends DefaultApplicationPlugin {
 
         String formDefIdSourceFile = (String) properties.get("formDefIdSourceFile");
         String sourceFileFieldId = (String) properties.get("sourceFileFieldId");
+        String passwordFieldId = (String) properties.get("passwordFieldId");
         String formDefIdOutputFile = (String) properties.get("formDefIdOutputFile");
         String outputFileFieldId = (String) properties.get("outputFileFieldId");
-        String filePassword = (String) properties.get("password");
-        filePassword = AppUtil.processHashVariable(filePassword, null, null, null);
         String recordId;
 
         WorkflowAssignment wfAssignment = (WorkflowAssignment) properties.get("workflowAssignment");
@@ -87,12 +86,15 @@ public class PdfPasswordUnlocker extends DefaultApplicationPlugin {
                 formData.setPrimaryKeyValue(recordId);
                 loadForm = appService.viewDataForm(appDef.getId(), appDef.getVersion().toString(), formDefIdSourceFile, null, null, null, formData, null, null);
 
-                Element el = FormUtil.findElement(sourceFileFieldId, loadForm, formData);
-                String pdfFilePath = FormUtil.getElementPropertyValue(el, formData);
+                // Get the source file path
+                Element sourceFileEl = FormUtil.findElement(sourceFileFieldId, loadForm, formData);
+                String pdfFilePath = FormUtil.getElementPropertyValue(sourceFileEl, formData);
                 srcFile = FileUtil.getFile(pdfFilePath, loadForm, recordId);
-
-                String password = SecurityUtil.decrypt(filePassword);
-
+                
+                // Get the password from the form field
+                Element passwordEl = FormUtil.findElement(passwordFieldId, loadForm, formData);
+                String password = FormUtil.getElementPropertyValue(passwordEl, formData);
+                
                 String filePaths = srcFile.getPath();
                 List<String> fileList = getFilesList(filePaths);
                 StringBuilder resultBuilder = new StringBuilder();
